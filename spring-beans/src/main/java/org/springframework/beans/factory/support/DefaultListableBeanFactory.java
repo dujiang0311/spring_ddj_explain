@@ -110,10 +110,14 @@ import org.springframework.util.StringUtils;
  * @see #getBean
  * @see #resolveDependency
  */
+// ddj_001:纸上得来终觉浅，绝知此事要躬行
+// ddj_002:书上是从这里开始说的，大家可以先看下整个spring-beans jar 的目录结构，此类是整个bean 加载的核心部分，作用如下：spring 以及加载bean 的默认实现
 @SuppressWarnings("serial")
 public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFactory
 		implements ConfigurableListableBeanFactory, BeanDefinitionRegistry, Serializable {
-
+// ddj_003:先别看什么工厂类的类名，先关注下这个类的层次结构 -- 快捷键不清楚的从这儿看：https://www.csdn.net/tags/MtTakgysNjY5NjktYmxvZwO0O0OO0O0O.html
+// ddj_004:查看下整个类的DefaultListableBeanFactory 类图，其中产出的就是容器加载的相关类，社区版IDEA是查看不了的，不过没关系，后续会一点儿一点儿了解。
+// ddj_005：这个类XmlBeanFactory继承自DefaultListableBeanFactory，是对此类的一个扩展，就是从XML 文档中读取BeanDefinition(bean 的定义)
 	@Nullable
 	private static Class<?> javaxInjectProviderClass;
 

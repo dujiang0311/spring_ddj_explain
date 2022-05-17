@@ -53,7 +53,7 @@ import org.springframework.core.io.Resource;
 @Deprecated
 @SuppressWarnings({"serial", "all"})
 public class XmlBeanFactory extends DefaultListableBeanFactory {
-
+// ddj_006:XML 配置文件的读取是Spring中的一个重要的功能，读取XML配置就是用XmlBeanDefinitionReader 主要是做了资源文件读取、解析及注册的大致脉络
 	private final XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(this);
 
 
