@@ -54,6 +54,8 @@ import org.springframework.core.io.Resource;
 @SuppressWarnings({"serial", "all"})
 public class XmlBeanFactory extends DefaultListableBeanFactory {
 // ddj_006:XML 配置文件的读取是Spring中的一个重要的功能，读取XML配置就是用XmlBeanDefinitionReader 主要是做了资源文件读取、解析及注册的大致脉络
+// ddj_007：一开始看到这个类还是有点儿懵逼的，为什么要从这块开始阅读，后来我们在写Spring 使用的例子时看到了这样一句话，BeanFactory bf = new XmlBeanFactory(new ClassPathResource("beanFactoryTest.xml"));
+// 看这个代码的时序图（时序图安装插件：https://blog.csdn.net/iiiliuyang/article/details/121482837）其实不看也行，代码一般都是从上到下，从左到右，从里到外执行的，我们在研究XmlBeanFactory 之前，先研究研究里面的东西 new ClassPathResource("beanFactoryTest.xml")
 	private final XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(this);
 
 

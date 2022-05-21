@@ -41,6 +41,9 @@ import org.springframework.util.StringUtils;
  * @see ClassLoader#getResourceAsStream(String)
  * @see Class#getResourceAsStream(String)
  */
+// ddj_008 这个类封装了Spring 配置文件的读取，具体是怎么做的呢，我们往下走，老规矩从左到右，从上到下，从里到外，先看这个名字 ClassPathResource 直接翻译，应该是类路径资源的意思，其实我们要理解，类归结起来也是.class（编译后的） 结尾的一个文件而已
+// 看源码最忌讳过度解读，没什么特别的，就是用来加载文件的一个类而已，和我们常见的FileResource，UrlResource，没啥区别，这个类的继承关系，我们点进去看下，算了我直接标注下：
+// ClassPathResource->AbstractFileResolvingResource->AbstractResource->Resource->InputStreamSource 然后再看这个InputStreamSource 接口的实现，我们发现对不同来源的资源文件，都有对应的Resource
 public class ClassPathResource extends AbstractFileResolvingResource {
 
 	private final String path;
@@ -164,6 +167,7 @@ public class ClassPathResource extends AbstractFileResolvingResource {
 	 * @see java.lang.ClassLoader#getResourceAsStream(String)
 	 * @see java.lang.Class#getResourceAsStream(String)
 	 */
+	// ddj_009 其实上面的继承逻辑也可以不用一个个看，new ClassPathResource("*.xml") 得到的Resource 对象，就是通过下面的方法得到 InputStream
 	@Override
 	public InputStream getInputStream() throws IOException {
 		InputStream is;
