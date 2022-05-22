@@ -168,6 +168,8 @@ public class ClassPathResource extends AbstractFileResolvingResource {
 	 * @see java.lang.Class#getResourceAsStream(String)
 	 */
 	// ddj_009 其实上面的继承逻辑也可以不用一个个看，new ClassPathResource("*.xml") 得到的Resource 对象，就是通过下面的方法得到 InputStream
+	// Spring 将配置文件封装为资源实例方法后，接下来就是对解析的所谓文件内容去初始化了，为啥会到这儿呢，BeanFactory bf = new XmlBeanFactory(new ClassPathResource("beanFactoryTest.xml"));
+	// 还记得代码时怎么读的，从里到外，那么我们去看看XmlBeanFactory 类干了什么好事
 	@Override
 	public InputStream getInputStream() throws IOException {
 		InputStream is;

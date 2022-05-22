@@ -167,6 +167,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	public AbstractAutowireCapableBeanFactory() {
 		super();
+		// ddj_013 走到了这里，我们必须要提及下面这一个方法，别看有三行，方法命都一样，入参不同罢了，Spring 的源码很值得我们研发人员学习的地方，就是直接翻译下方法命，就能大概猜到作用，下面这个方法是 -- 忽略依赖的接口
+		// Spring 为什么要这么做，背后的根因的是什么？这是摆在脸上我们需要探究的问题
+		// ddj_014 Spring 有一个重要的特性，那就是当A 中存在B 属性的时候，当Spring 加载到A时，发现B 还没初始化，那么就会从里到外的先把B 初始化（循环依赖问题也是这个重要特性所有解决的，后面再说），但是也有一些特殊情况下B 不会被初始化，
+		// 其中的一种情况的就是B 类实现了BeanNameAware，这是另一种注册依赖的方式，或者叫Bean  的装配方式。你要自己实现这个BeanNameAware 类的时候，就以为着你有手动装配的诉求，Spring 当前走的是自动装配的过程，所以忽略掉也是应该的
+		// 其实也不用纠结，点进方法里面看下，就是个集合Add 了几个类，属于先标识出来，后续统一处理。
 		ignoreDependencyInterface(BeanNameAware.class);
 		ignoreDependencyInterface(BeanFactoryAware.class);
 		ignoreDependencyInterface(BeanClassLoaderAware.class);

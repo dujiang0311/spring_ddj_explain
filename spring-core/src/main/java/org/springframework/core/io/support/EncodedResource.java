@@ -135,6 +135,7 @@ public class EncodedResource implements InputStreamSource {
 	 * @see #requiresReader()
 	 * @see #getInputStream()
 	 */
+	// ddj_018 走上面的构造方法，主要是给资源设置字符集，很显然，构造方法里面是空的赋值，当然假如设置了编码属性的时候charset、encoding Spring 会使用相应的编码作为输入流的编码。
 	public Reader getReader() throws IOException {
 		if (this.charset != null) {
 			return new InputStreamReader(this.resource.getInputStream(), this.charset);

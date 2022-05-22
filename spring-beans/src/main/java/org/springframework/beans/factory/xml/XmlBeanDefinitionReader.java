@@ -301,6 +301,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 */
 	@Override
 	public int loadBeanDefinitions(Resource resource) throws BeanDefinitionStoreException {
+		// ddj_017 从里到外的阅读，EncodedResource 这个类是作甚的，直接翻译--编码资源
 		return loadBeanDefinitions(new EncodedResource(resource));
 	}
 
@@ -311,6 +312,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @return the number of bean definitions found
 	 * @throws BeanDefinitionStoreException in case of loading or parsing errors
 	 */
+	// ddj_019 这个方法内部才是真正的Spring 的数据准备阶段，你看他又臭又长，需要好好看看了
 	public int loadBeanDefinitions(EncodedResource encodedResource) throws BeanDefinitionStoreException {
 		Assert.notNull(encodedResource, "EncodedResource must not be null");
 		if (logger.isInfoEnabled()) {

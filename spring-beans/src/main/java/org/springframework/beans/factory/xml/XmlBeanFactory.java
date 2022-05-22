@@ -58,7 +58,7 @@ public class XmlBeanFactory extends DefaultListableBeanFactory {
 // 看这个代码的时序图（时序图安装插件：https://blog.csdn.net/iiiliuyang/article/details/121482837）其实不看也行，代码一般都是从上到下，从左到右，从里到外执行的，我们在研究XmlBeanFactory 之前，先研究研究里面的东西 new ClassPathResource("beanFactoryTest.xml")
 	private final XmlBeanDefinitionReader reader = new XmlBeanDefinitionReader(this);
 
-
+	// 还记得吗，一个类可以有多个构造函数，客户端用哪个，一般由入参决定，那我们ddj_007 里面的代码应该是走了下面这个构造函数里去了
 	/**
 	 * Create a new XmlBeanFactory with the given resource,
 	 * which must be parsable using DOM.
@@ -66,6 +66,7 @@ public class XmlBeanFactory extends DefaultListableBeanFactory {
 	 * @throws BeansException in case of loading or parsing errors
 	 */
 	public XmlBeanFactory(Resource resource) throws BeansException {
+		// ddj_010 从这儿进去，构造函数再次调用内部构造函数
 		this(resource, null);
 	}
 
@@ -77,7 +78,11 @@ public class XmlBeanFactory extends DefaultListableBeanFactory {
 	 * @throws BeansException in case of loading or parsing errors
 	 */
 	public XmlBeanFactory(Resource resource, BeanFactory parentBeanFactory) throws BeansException {
+		// ddj_011 在资源架子啊之前，还需要调用父类构造函数初始化的过程，点进去看看
 		super(parentBeanFactory);
+		// ddj_015 终于找到资源加载的真正实现了，我们在读代码要明白一件事，Spring 源码也是人写的，再满足架构设计的基础上写代码，必然存在先写主干，再补逻辑，也就是不可能一开始就把所有功能都想的很健壮，但是我们在阅读源码的时候，一定是一个很健壮的代码，
+		// 也是经过很多迭代才产出的，所以我们要找到核心主干，然后学习其中的设计模式，甚至于方法明明方式，异常处理方式
+		// ddj_016 先看下这个方法的时序图，当然，大概看看就行，绕的人头皮发麻，直接把关键点走下把
 		this.reader.loadBeanDefinitions(resource);
 	}
 
