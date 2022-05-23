@@ -95,6 +95,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 		this.readerContext = readerContext;
 		logger.debug("Loading bean definitions");
 		Element root = doc.getDocumentElement();
+		// ddj_026.4 这个方法算是核心逻辑的底层了，Spring 为了使代码满足单一职责的设计模式，其实有一点就是会造成我们阅读代码的时候，总是跳来跳去的，但其实我们仔细想想，这样我们阅读的代码块相对来说都是很干净的，逻辑也相对清晰，再点进去看看
 		doRegisterBeanDefinitions(root);
 	}
 
@@ -131,6 +132,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 
 		if (this.delegate.isDefaultNamespace(root)) {
 			String profileSpec = root.getAttribute(PROFILE_ATTRIBUTE);
+			// ddj_026.5 处理 profile 属性，profile 是干嘛的呢？做过项目的人一般都知道环境是分为，开发（dev）,测试（test），生产（product）等等多套环境的，最常用的就是更换数据库环境，你总不好本地访问生产库去做测试，这样很不安全
 			if (StringUtils.hasText(profileSpec)) {
 				String[] specifiedProfiles = StringUtils.tokenizeToStringArray(
 						profileSpec, BeanDefinitionParserDelegate.MULTI_VALUE_ATTRIBUTE_DELIMITERS);
@@ -144,8 +146,11 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 			}
 		}
 
+		// ddj_026.6 解析前处理，留给子类实现的(这里插播一句，面向对象设计方法论里面有句话，叫做一个类要么是面向继承设计的，要么是被final 所修饰的-- 模板方法模式，如果你后续有对bean 加载的前后做一些自定义的校验处理的话，可以直接继承此类，重写此方法即可)
 		preProcessXml(root);
+		// ddj_026.7 解析并注册 BeanDefinition
 		parseBeanDefinitions(root, this.delegate);
+		//ddj_026. 解析后处理，留给子类实现的（也是空的，和ddj_026.6 逻辑一致）
 		postProcessXml(root);
 
 		this.delegate = parent;
@@ -171,10 +176,13 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 				Node node = nl.item(i);
 				if (node instanceof Element) {
 					Element ele = (Element) node;
+					// ddj_026.8 判断是自定义还是默认解析，点进去会发现这个方法getNamespaceURI(node)获取回来的命名空间，与 spring 中固定的命名空间（http://www.springframework.org/schema/beans）进行比对，一致的就是默认，不一致就自定义
 					if (delegate.isDefaultNamespace(ele)) {
+						// ddj_026.9 默认对bean 的处理，我们在写代码的时候，也能立即，默认实现是通用实现，都是由自身把控的，接下来会细说下
 						parseDefaultElement(ele, delegate);
 					}
 					else {
+						// ddj_026.10 自定义对bean 的处理，这里面的学问可就有点儿大了，比如我们在哪里就要按照什么规矩来，不好在服装店里吃饭，在饭店里洗脚是一个道理。所以我们如果用了spring 的自定义解析的话，就需要我们自己实现一些接口和配置了
 						delegate.parseCustomElement(ele);
 					}
 				}

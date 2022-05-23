@@ -256,6 +256,9 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * Return the EntityResolver to use, building a default resolver
 	 * if none specified.
 	 */
+	//ddj_025.3 这里直接说一个结论吧，DTD 从网络上获取解析路径是直接截取的这个文件：spring-beans.dtd 的这块儿内容
+	// <!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "https://www.springframework.org/dtd/spring-beans-2.0.dtd"> XSD 的则是从META-INF/spring-schemas 里面获取的
+
 	protected EntityResolver getEntityResolver() {
 		if (this.entityResolver == null) {
 			// Determine default EntityResolver to use.
@@ -264,6 +267,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 				this.entityResolver = new ResourceEntityResolver(resourceLoader);
 			}
 			else {
+				//ddj_025.4 Spring 容器默认是用了这个实现类DelegatingEntityResolver
 				this.entityResolver = new DelegatingEntityResolver(getBeanClassLoader());
 			}
 		}
@@ -318,7 +322,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 		if (logger.isInfoEnabled()) {
 			logger.info("Loading XML bean definitions from " + encodedResource);
 		}
-
+		// ddj_020 记录已经加载的资源
 		Set<EncodedResource> currentResources = this.resourcesCurrentlyBeingLoaded.get();
 		if (currentResources == null) {
 			currentResources = new HashSet<>(4);
@@ -329,12 +333,15 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 					"Detected cyclic loading of " + encodedResource + " - check your import definitions!");
 		}
 		try {
+			// ddj_021 从Resource 中获取到inputStream
 			InputStream inputStream = encodedResource.getResource().getInputStream();
 			try {
+				// ddj_021 获取inputSource
 				InputSource inputSource = new InputSource(inputStream);
 				if (encodedResource.getEncoding() != null) {
 					inputSource.setEncoding(encodedResource.getEncoding());
 				}
+				// ddj_022 一看这个方法就能干大事，属于数据准备的核心部分--我们在阅读代码的时候，会发现，一个所谓核心方法中，也有类型转化，验证异常等代码块，这些其实都是为了核心做数据准备，其实也是为了增强代码的健壮性，这点以后写代码的时候也要关注
 				return doLoadBeanDefinitions(inputSource, encodedResource.getResource());
 			}
 			finally {
@@ -390,7 +397,9 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	protected int doLoadBeanDefinitions(InputSource inputSource, Resource resource)
 			throws BeanDefinitionStoreException {
 		try {
+			// ddj_023 点进去看下，其他Spring版本，可能没将验证工作，封装，这个版本将验证功能封装到下面这个方法里面了，针对下面做的ddj_024 到ddj_025 做的事，我们先翻译大法概括下，然后继续一个一个解析下
 			Document doc = doLoadDocument(inputSource, resource);
+			// ddj_026 （此处含11个部分 ddj_026.01~ddj_026.11，其中，从ddj_026.10 开始，要针对性的细化，故里面的内容将会从ddj_027 开始说起，并且后续将不存在ddj_026.01 这种部分描述了） 直接翻译就行，其实就是根据上面返回的doc 开始注册Bean了（含解析）
 			return registerBeanDefinitions(doc, resource);
 		}
 		catch (BeanDefinitionStoreException ex) {
@@ -428,6 +437,9 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see DocumentLoader#loadDocument
 	 */
 	protected Document doLoadDocument(InputSource inputSource, Resource resource) throws Exception {
+		// ddj_024（此块儿包含5处说明，请搜索ddj_024.1~ddj_024.5） 按照从里到外的阅读原则，我们先看下getValidationModeForResource 这个方法是干啥，直接翻译过来就是-- 获取资源验证模式，XML 的验证方式有两种：DTD（文档类型定义，校验文档格式是否正确的）、XSD（结构类型定义，判断这个XML 文档是否符合规约，并有效），打开资源文件就可以看到一个spring-beans.dtd 文件，打开看看
+		// 就是对于我们的XML 文件的验证模式进行个获取标识，这个文章有描述，自行查阅：https://blog.csdn.net/u014252478/article/details/84061431,大家其实打开自己的Spring的项目，如果是使用XSD 对其*.xml 文件进行检验的话，文件头会有这样一段话  xsi:schemaLocation="http****" 什么的
+		// ddj_025（此块儿包含6处说明，请搜索ddj_025.1~ddj_026.6） loadDocument 这个方法就是加载 XML 文件了，并得到一个 Document 类型的返回，底下我细聊
 		return this.documentLoader.loadDocument(inputSource, getEntityResolver(), this.errorHandler,
 				getValidationModeForResource(resource), isNamespaceAware());
 	}
@@ -442,9 +454,11 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 */
 	protected int getValidationModeForResource(Resource resource) {
 		int validationModeToUse = getValidationMode();
+		// ddj_024.1 手动指定了验证模式的话，那就用自己指定的额
 		if (validationModeToUse != VALIDATION_AUTO) {
 			return validationModeToUse;
 		}
+		// ddj_024.2 未指定的话，就用默认的
 		int detectedMode = detectValidationMode(resource);
 		if (detectedMode != VALIDATION_AUTO) {
 			return detectedMode;
@@ -483,6 +497,7 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 		}
 
 		try {
+			// ddj_024.2 在这里做的具体实现，委托给了一个专门做XML 校验的处理类 XmlValidationModeDetector
 			return this.validationModeDetector.detectValidationMode(inputStream);
 		}
 		catch (IOException ex) {
@@ -505,9 +520,13 @@ public class XmlBeanDefinitionReader extends AbstractBeanDefinitionReader {
 	 * @see BeanDefinitionDocumentReader#registerBeanDefinitions
 	 */
 	public int registerBeanDefinitions(Document doc, Resource resource) throws BeanDefinitionStoreException {
+		// ddj_026.1 使用 DefaultBeanDefinitionDocumentReader 实例化 BeanDefinitionDocumentReader，
 		BeanDefinitionDocumentReader documentReader = createBeanDefinitionDocumentReader();
+		// ddj_026.2 记录统计前 BeanDefinition 的加载个数
 		int countBefore = getRegistry().getBeanDefinitionCount();
+		// ddj_026.3 加载及注册 bean 真正的打工人其实是 DefaultBeanDefinitionDocumentReader 点进去看看吧
 		documentReader.registerBeanDefinitions(doc, createReaderContext(resource));
+		// ddj_026.11 记录本次加载 BeanDefinition（定义 Bean） 的个数
 		return getRegistry().getBeanDefinitionCount() - countBefore;
 	}
 

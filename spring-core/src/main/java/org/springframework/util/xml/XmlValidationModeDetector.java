@@ -95,9 +95,11 @@ public class XmlValidationModeDetector {
 			String content;
 			while ((content = reader.readLine()) != null) {
 				content = consumeCommentTokens(content);
+				// ddj_024.3 读取文件嘛，机器需要一行一行读，先把空行忽略
 				if (this.inComment || !StringUtils.hasText(content)) {
 					continue;
 				}
+				// ddj_024.4 从这个方法进去看看 hasDoctype 直接翻译也知道是干啥的，判断是否有DTD（Document Type Definition） 验证模式，这块代码没啥逻辑
 				if (hasDoctype(content)) {
 					isDtdValidated = true;
 					break;
@@ -107,6 +109,7 @@ public class XmlValidationModeDetector {
 					break;
 				}
 			}
+			// ddj_024.5 如果是 DOCTYPE 开头的，就代表是判断是否有DTD验证模式（纯字符串匹配），否则就直接按XSD 算
 			return (isDtdValidated ? VALIDATION_DTD : VALIDATION_XSD);
 		}
 		catch (CharConversionException ex) {

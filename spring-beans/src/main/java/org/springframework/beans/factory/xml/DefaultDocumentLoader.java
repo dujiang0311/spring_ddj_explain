@@ -65,6 +65,8 @@ public class DefaultDocumentLoader implements DocumentLoader {
 	 * Load the {@link Document} at the supplied {@link InputSource} using the standard JAXP-configured
 	 * XML parser.
 	 */
+	//ddj_025.1 不用说了，这里才是专门处理Document 文档加载的地方,利用SAX加载文档的方式，都是一个套路，大家可以自行搜索，或者直接看这个：https://blog.csdn.net/qq_59212717/article/details/120799427
+	//ddj_025.2 看这个方法的入参，EntityResolver（实体解析器） 这个类，是怎么传进来的呢？ 回过头儿去看发现了这个方法getEntityResolver()，这个类就是提供一个寻找方法，寻找什么呢？寻找DTD 的一个生命，从哪里寻找呢？从网络上下载（从网上下载，体验不好，所以一般都是会放到项目本地的）
 	@Override
 	public Document loadDocument(InputSource inputSource, EntityResolver entityResolver,
 			ErrorHandler errorHandler, int validationMode, boolean namespaceAware) throws Exception {
