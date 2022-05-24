@@ -57,10 +57,12 @@ public class BeanDefinitionReaderUtils {
 	public static AbstractBeanDefinition createBeanDefinition(
 			@Nullable String parentName, @Nullable String className, @Nullable ClassLoader classLoader) throws ClassNotFoundException {
 
+		//ddj_037 看到没，实际的实现类是GenericBeanDefinition，这里注意下parentName 是可能为空的，大多数情况也是空的
 		GenericBeanDefinition bd = new GenericBeanDefinition();
 		bd.setParentName(parentName);
 		if (className != null) {
 			if (classLoader != null) {
+				//ddj_038 如果classLoader 不为空，则使用是以传入的classLoader 同一虚拟机加载类对象，否则只是记录下
 				bd.setBeanClass(ClassUtils.forName(className, classLoader));
 			}
 			else {

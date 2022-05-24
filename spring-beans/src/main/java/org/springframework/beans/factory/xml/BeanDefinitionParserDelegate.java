@@ -412,9 +412,12 @@ public class BeanDefinitionParserDelegate {
 	 */
 	@Nullable
 	public BeanDefinitionHolder parseBeanDefinitionElement(Element ele, @Nullable BeanDefinition containingBean) {
+		// ddj_030 解析id 属性
 		String id = ele.getAttribute(ID_ATTRIBUTE);
+		// ddj_030 解析name 属性
 		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
 
+		//ddj_031 name 属性分割
 		List<String> aliases = new ArrayList<>();
 		if (StringUtils.hasLength(nameAttr)) {
 			String[] nameArr = StringUtils.tokenizeToStringArray(nameAttr, MULTI_VALUE_ATTRIBUTE_DELIMITERS);
@@ -434,6 +437,7 @@ public class BeanDefinitionParserDelegate {
 			checkNameUniqueness(beanName, aliases, ele);
 		}
 
+		//ddj_032 这里解析其他所有属性，并进行了一个封装，我们进去看下
 		AbstractBeanDefinition beanDefinition = parseBeanDefinitionElement(ele, beanName, containingBean);
 		if (beanDefinition != null) {
 			if (!StringUtils.hasText(beanName)) {
@@ -503,31 +507,40 @@ public class BeanDefinitionParserDelegate {
 		this.parseState.push(new BeanEntry(beanName));
 
 		String className = null;
+		//ddj_032 解析了class 属性
 		if (ele.hasAttribute(CLASS_ATTRIBUTE)) {
 			className = ele.getAttribute(CLASS_ATTRIBUTE).trim();
 		}
 		String parent = null;
+		//ddj_033 解析了parent
 		if (ele.hasAttribute(PARENT_ATTRIBUTE)) {
 			parent = ele.getAttribute(PARENT_ATTRIBUTE);
 		}
 
 		try {
+			//ddj_034 创建用于承载 bean 属性的 AbstractBeanDefinition，大家看好了，这个抽象类实现了BeanDefinition 的接口，大家直接点进去看一下，大概分成三块实现类（RootBeanDefinition、ChildBeanDefinition、GenericBeanDefinition）
+			//ddj_035 BeanDefinition 是配置文件<bean>元素标签在容器当中的内部标识形式，其实可以这么理解，就是xml 文件里面的，对应到类上的一个映射表现，提前说下看上面三个实现类，猜也可以猜到的话 RootBeanDefinition 比较常用，一般咱们做业务系统的时候，子bean 不太常写
 			AbstractBeanDefinition bd = createBeanDefinition(className, parent);
 
+			// ddj_039 解析各种属性，当我们创建了bean 信息的承载实例之后（GenericBeanDefinition 是具体实现），就可以对bean 信息进行属性解析了，下面这个方法是对Element 所有元素属性进行解析，里面有很多属性使我们经常使用的，当然也有一些不经常用的
 			parseBeanDefinitionAttributes(ele, beanName, containingBean, bd);
 			bd.setDescription(DomUtils.getChildElementValueByTagName(ele, DESCRIPTION_ELEMENT));
-
+			//ddj_040 这块代码都是xml 文件解析相关的，然后全部赋值到那个bd 里面去了，前面提到的过， BeanDefinition 就是xml 中<bean>在类中的映射，下面这个翻译下就能知道是解析子元素meta，感兴趣的都可以在这里查阅哈：https://www.csdn.net/tags/NtjaMg2sMDExNzktYmxvZwO0O0OO0O0O.html
 			parseMetaElements(ele, bd);
+			//ddj_043 这个相对比较少见，但是有用的属性，翻译下：解析查找覆盖子元素，就是说我们可以通过这个属性，可以动态的接触程序依赖，比如A继承B，后来可能想替换输出，由C继承B 开展业务，那么我们就可以通过下面这个属性，去动态的修改配置文件的方式去解决问题
 			parseLookupOverrideSubElements(ele, bd.getMethodOverrides());
+			// ddj_044 这个属性不但可以动态的替换bean 还能在运行期，直接动态的更改原有方法的逻辑，这两个都用的相对比较少，一般在做可插拔的项目的时候，才能碰到，但是可插拔的技术方案一般也不会采用这种形式去实现，大家先自行看下，感兴趣也可以了解下
 			parseReplacedMethodSubElements(ele, bd.getMethodOverrides());
 
+			// ddj_045 这个是对构造函数的解析，这个得使用，其实不难，就是一个类（bean）里面多构造函数，在xml 文件直接配置，不用在代码里面直接写了，我想说的是他的解析过程，点进去看看
 			parseConstructorArgElements(ele, bd);
+			// ddj_051 解析子元素property 这个就很常见了，我们平时开发的时候都会写的，里面没啥复杂逻辑，可以不看了，还是放到bd 的指定位置了propertyValue 属性中了，parseQualifierElements 这个方法也不多说了，就是解析下，一般也用不到
 			parsePropertyElements(ele, bd);
 			parseQualifierElements(ele, bd);
 
 			bd.setResource(this.readerContext.getResource());
 			bd.setSource(extractSource(ele));
-
+			// ddj_052 到这儿我们就完成了对XML 文档到 GenericBeanDefinition 的转换了，也就是说XML 里面的所有配置，都在这个类的属性里面了，当然GenericBeanDefinition 只是一个子类的实现，大部分属性都存到了AbstractBeanDefinition 这里面了，所以这个类我们要回顾看下。
 			return bd;
 		}
 		catch (ClassNotFoundException ex) {
@@ -654,8 +667,10 @@ public class BeanDefinitionParserDelegate {
 				Element metaElement = (Element) node;
 				String key = metaElement.getAttribute(KEY_ATTRIBUTE);
 				String value = metaElement.getAttribute(VALUE_ATTRIBUTE);
+				//ddj_041 使用 key, value 构造了一个对象 BeanMetadataAttribute
 				BeanMetadataAttribute attribute = new BeanMetadataAttribute(key, value);
 				attribute.setSource(extractSource(metaElement));
+				//ddj_042 并且在这里记录了下，单看目前spring 的一些操作，都是相对很常规的，说句实在话，当前的这个位置还没发现任何技巧在里面，这里有一点哈BeanMetadataAttributeAccessor 是AbstractBeanDefinition 这个的父类，所以传参进来才没报错，理论上还是往bd 里面加料
 				attributeAccessor.addMetadataAttribute(attribute);
 			}
 		}
@@ -696,6 +711,7 @@ public class BeanDefinitionParserDelegate {
 		for (int i = 0; i < nl.getLength(); i++) {
 			Node node = nl.item(i);
 			if (isCandidateElement(node) && nodeNameEquals(node, CONSTRUCTOR_ARG_ELEMENT)) {
+				// ddj_046 提取到constructor-arg 元素，然后开始遍历，我们走进去看看
 				parseConstructorArgElement((Element) node, bd);
 			}
 		}
@@ -776,6 +792,7 @@ public class BeanDefinitionParserDelegate {
 	 * Parse a constructor-arg element.
 	 */
 	public void parseConstructorArgElement(Element ele, BeanDefinition bd) {
+		// ddj_047 针对 constructor-arg 的必要属性元素进行提取（index、type、name）
 		String indexAttr = ele.getAttribute(INDEX_ATTRIBUTE);
 		String typeAttr = ele.getAttribute(TYPE_ATTRIBUTE);
 		String nameAttr = ele.getAttribute(NAME_ATTRIBUTE);
@@ -787,7 +804,9 @@ public class BeanDefinitionParserDelegate {
 				}
 				else {
 					try {
+						// ddj_048 对这些参数进行了一个封装，到这里其实也没啥特殊
 						this.parseState.push(new ConstructorArgumentEntry(index));
+						// ddj_049 下面这个是解析子元素的过程
 						Object value = parsePropertyValue(ele, bd, null);
 						ConstructorArgumentValues.ValueHolder valueHolder = new ConstructorArgumentValues.ValueHolder(value);
 						if (StringUtils.hasLength(typeAttr)) {
@@ -951,6 +970,7 @@ public class BeanDefinitionParserDelegate {
 			return valueHolder;
 		}
 		else if (subElement != null) {
+			// ddj_050 针对构造函数里面又有嵌套的Map 是在这里处理
 			return parsePropertySubElement(subElement, bd);
 		}
 		else {
