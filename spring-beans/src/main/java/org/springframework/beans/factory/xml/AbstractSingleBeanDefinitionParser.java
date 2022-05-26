@@ -65,11 +65,13 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 		if (parentName != null) {
 			builder.getRawBeanDefinition().setParentName(parentName);
 		}
+		// ddj_090 获取自定义比标签中的class ，此时就会调用自定义解析器（真滴是自己手写的那个类哟）中的getClass 方法
 		Class<?> beanClass = getBeanClass(element);
 		if (beanClass != null) {
 			builder.getRawBeanDefinition().setBeanClass(beanClass);
 		}
 		else {
+			// ddj_091 如果没有重写 getBeanClass 方法，那就看看有没有重写 getBeanClassName 方法
 			String beanClassName = getBeanClassName(element);
 			if (beanClassName != null) {
 				builder.getRawBeanDefinition().setBeanClassName(beanClassName);
@@ -79,12 +81,18 @@ public abstract class AbstractSingleBeanDefinitionParser extends AbstractBeanDef
 		BeanDefinition containingBd = parserContext.getContainingBeanDefinition();
 		if (containingBd != null) {
 			// Inner bean definition must receive same scope as containing bean.
+			// ddj_092 若存在父类，则用父类的scope 属性
 			builder.setScope(containingBd.getScope());
 		}
 		if (parserContext.isDefaultLazyInit()) {
 			// Default-lazy-init applies to custom bean definitions as well.
+			// ddj_093 配置延迟加载
 			builder.setLazyInit(true);
 		}
+		// ddj_094 这里就是调用子类重写的 doParse 方法了，你在dubbo 的自定义解析器里面其实都可以看到这些方法，他都实现了。
+		// ddj_095 总结下，虽然我们自定义了解析器，继承了AbstractSingleBeanDefinitionParser 这个类，但是我们只是单纯的做了和自己业务逻辑相关的部分。其实这个处理过程和spring 默认标签的处理方式基本差不多，
+		// 包括创建的 BeanDefinition 以及上面做的一些默认属性的设置，至此，我们已经搞清楚了 spring 的全部解析工作，也就是说我们能理解spring 是如何将配置文件（*.xml） 里的 bean 加载到内存中的全过程，接下
+		// 来就是如何使用了，也就是 bean 的加载。
 		doParse(element, parserContext, builder);
 		return builder.getBeanDefinition();
 	}

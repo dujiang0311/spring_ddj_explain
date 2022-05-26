@@ -60,6 +60,7 @@ public abstract class AbstractBeanDefinitionParser implements BeanDefinitionPars
 	@Override
 	@Nullable
 	public final BeanDefinition parse(Element element, ParserContext parserContext) {
+		// ddj_089 真正做解析的工作是下面这个方法做，下面这个方法调用了我们自定义的解析方法，当然也不是直接调用自定义的 doParse 方法,而是进行了一系列的数据准备，包括对 beanClass 、scope 、lazyInit 等属性的准备
 		AbstractBeanDefinition definition = parseInternal(element, parserContext);
 		if (definition != null && !parserContext.isNested()) {
 			try {

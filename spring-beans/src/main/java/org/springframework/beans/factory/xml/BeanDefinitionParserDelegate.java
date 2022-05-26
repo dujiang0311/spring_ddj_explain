@@ -1397,17 +1397,33 @@ public class BeanDefinitionParserDelegate {
 	 * @param containingBd the containing bean definition (if any)
 	 * @return the resulting bean definition
 	 */
+	// ddj_076 自定义标签的解析将从这里开始说起了，其实在分析原理的时候，可以先百度下自定义标签的使用，比如，市面上的 dubbo,里面就有很多自定义标签，其解析和注册就是在这里面做的，为啥要自定义标签呢？这里有必要做一个说明，通常来讲，我们用标准bean
+	// 基本上就可以满足我们的需求了，但是当我们有更丰富的配置的时候，一般的做法是会用原生的方式解析定义好的bean 然后在转换为我们需要的特色的配置对象，但实现起来人就麻了，尤其是解析。所以spring 这里帮你提供了可扩展的功能，也算是一个折中方案，其实
+	// 我们就类似于我们在做需求的时候，预留一个扩展点，用于定制化业务的介入，这也是系统健壮性的体现，包括最近DDD也比较火，经常提到扩展点巴拉巴拉的，其实都是大同小异，既然代码是人写的，那么代码就永远是符合人性的，有洁癖的人可能追求极致规整，懒的人
+	// 可能追求极致的方便等等吧，
+	// ddj_077 扩展spring 自定义标签大致需要如下几个步骤
+	// 1、创建一个需要扩展的组件
+	// 2、定义XSD 文件的扩展描述
+	// 3、创建一个文件，实现BeanDefinitionParser 的接口，用来解析XSD 文件的定义和组件的一些定义（和默认bean 解析那套很类似）
+	// 4、创建一个  Handler 文件，扩展自NameSpaceHandlerSupport ,目的是将组件注册到 spring 容器中
+	// 5、编写 spring.handlers 和spring.schemas 你去看 dubbo 的源码，他里面必然有这些
+	// ddj_078 接下来我们重点关注下自定义标签的解析过程，下面方法第二个参数一般为空，是用来指定父bean 的，大面上看下面的方法貌似很简单，流程也相对清晰，但是细节有点儿多我们一个方法一个方法看
 	@Nullable
 	public BeanDefinition parseCustomElement(Element ele, @Nullable BeanDefinition containingBd) {
+		// ddj_079 这里是获取标签的命名空间，底下是jdk 的源码，我们直接调用就可以
 		String namespaceUri = getNamespaceURI(ele);
 		if (namespaceUri == null) {
 			return null;
 		}
+		// ddj_080 提取自定义标签处理器，当我们拿到了命名空间的连接
 		NamespaceHandler handler = this.readerContext.getNamespaceHandlerResolver().resolve(namespaceUri);
 		if (handler == null) {
 			error("Unable to locate Spring NamespaceHandler for XML schema namespace [" + namespaceUri + "]", ele);
 			return null;
 		}
+
+		// ddj_085 得到解析器以及要分析的元素后，spring 就可以将工作给自定义的解析器去处理了，我们自定义的 DubboNameSpaceHandler (只是拿Dubbo 举个栗子)，里面其实只实现了 init 方法，
+		// 并没有实现 parse（解析）方法，所以我们推断这个方法应该是父类实现了
 		return handler.parse(ele, new ParserContext(this.readerContext, this, containingBd));
 	}
 

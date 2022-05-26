@@ -70,7 +70,9 @@ public abstract class NamespaceHandlerSupport implements NamespaceHandler {
 	@Override
 	@Nullable
 	public BeanDefinition parse(Element element, ParserContext parserContext) {
+		// ddj_086 寻找解析器
 		BeanDefinitionParser parser = findParserForElement(element, parserContext);
+		// ddj_088 对于parse 方法的处理，我们点进去看看
 		return (parser != null ? parser.parse(element, parserContext) : null);
 	}
 
@@ -80,6 +82,7 @@ public abstract class NamespaceHandlerSupport implements NamespaceHandler {
 	 */
 	@Nullable
 	private BeanDefinitionParser findParserForElement(Element element, ParserContext parserContext) {
+		// ddj_087 获取元素名称，也就是 <dubbo:service 中的 service 按照 dubbo 的解析来看，当前的 localName 应该是 service, 根据 service 找到对应的解析器，也就是 在 DubboNamespaceHandler 实现的 init 方法里面，注册解析器
 		String localName = parserContext.getDelegate().getLocalName(element);
 		BeanDefinitionParser parser = this.parsers.get(localName);
 		if (parser == null) {
