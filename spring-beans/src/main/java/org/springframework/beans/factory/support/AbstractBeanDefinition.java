@@ -1060,6 +1060,8 @@ public abstract class AbstractBeanDefinition extends BeanMetadataAttributeAccess
 	 * @throws BeanDefinitionValidationException in case of validation failure
 	 */
 	public void validate() throws BeanDefinitionValidationException {
+		// ddj_061 如果 methodOverrides 属性不存在，那皆大欢喜，直接跳过，如果存在的话，并且工厂方法也存在的话，就会报下面的错，至于为啥不能共存，可能是如果存在工厂的话，后面的创建bean 的逻辑会进行覆盖，逻辑上不通，
+		// 当然我们暂时也不纠结校验层的一些事情，我们写业务代码的时候，丰富的校验逻辑规则，也是后面加进去的
 		if (hasMethodOverrides() && getFactoryMethodName() != null) {
 			throw new BeanDefinitionValidationException(
 					"Cannot combine factory method with container-generated method overrides: " +

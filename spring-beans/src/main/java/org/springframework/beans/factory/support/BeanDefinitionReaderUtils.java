@@ -149,9 +149,11 @@ public class BeanDefinitionReaderUtils {
 
 		// Register bean definition under primary name.
 		String beanName = definitionHolder.getBeanName();
+		// ddj_058 有过spring 使用经验的小伙伴都知道，注册bean 有两种方式，通过beanName 注册或者通过别名注册，我们先看第一个
 		registry.registerBeanDefinition(beanName, definitionHolder.getBeanDefinition());
 
 		// Register aliases for bean name, if any.
+		// ddj_067 bean 的注册原理基本上都是一样的，下面这个是注册别名
 		String[] aliases = definitionHolder.getAliases();
 		if (aliases != null) {
 			for (String alias : aliases) {

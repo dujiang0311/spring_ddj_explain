@@ -196,9 +196,11 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	private void parseDefaultElement(Element ele, BeanDefinitionParserDelegate delegate) {
 		//ddj_027 直接看方法里面判断，默认标签的解析分成了四块 对import/alias/bean/beans 的标签进行了分别的解析
 		if (delegate.nodeNameEquals(ele, IMPORT_ELEMENT)) {
+			// ddj_075 import 标签，其实是项目中比较常用的，避免一个xml 文件过分的冗长，里面的一些解析相对路径，解析绝对路径的问题，也相对不是特别复杂
 			importBeanDefinitionResource(ele);
 		}
 		else if (delegate.nodeNameEquals(ele, ALIAS_ELEMENT)) {
+			// ddj_074 之前我们讲解了 bean 标签的解析，其实针对 alias 标签的解析逻辑上基本一致，也是注册到对应的地方
 			processAliasRegistration(ele);
 		}
 		else if (delegate.nodeNameEquals(ele, BEAN_ELEMENT)) {
@@ -312,12 +314,14 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 	 * and registering it with the registry.
 	 */
 	protected void processBeanDefinition(Element ele, BeanDefinitionParserDelegate delegate) {
-		//ddj_029 解析BeanDefinition
+		//ddj_029 解析 BeanDefinition
 		BeanDefinitionHolder bdHolder = delegate.parseBeanDefinitionElement(ele);
 		if (bdHolder != null) {
+			//ddj_053 上面做了大量的讲解，终于到这个方法，翻译下：如果需要，装饰 Bean 定义 ，这里主要是针对bean 的自定义标签的处理（默认的标签其实直接跳过了）这个方法其实只处理bean 的自定义属性（真正用的不多），然后寻找对应的命名空间处理器去处理
 			bdHolder = delegate.decorateBeanDefinitionIfRequired(ele, bdHolder);
 			try {
 				// Register the final decorated instance.
+				// ddj_057 上面针对 BeanDefinition 解析和装饰，那么我们就基本将XML 文件转换成了我们可以用的一个BeanDefinition 了，接下来得工作就是注册了，下面的方法其实直接翻译下就知道是做什么事情了
 				BeanDefinitionReaderUtils.registerBeanDefinition(bdHolder, getReaderContext().getRegistry());
 			}
 			catch (BeanDefinitionStoreException ex) {
@@ -325,6 +329,7 @@ public class DefaultBeanDefinitionDocumentReader implements BeanDefinitionDocume
 						bdHolder.getBeanName() + "'", ele, ex);
 			}
 			// Send registration event.
+			// ddj_073 通知监听器解析及注册完成，这里面的实现知识为了扩展，当研发人员需要对注册 BeanDefinition 事件进行监听是，可以通过注册监听器的方式处理逻辑写入监听器中，当然Spring 没对此事件做任何的处理
 			getReaderContext().fireComponentRegistered(new BeanComponentDefinition(bdHolder));
 		}
 	}

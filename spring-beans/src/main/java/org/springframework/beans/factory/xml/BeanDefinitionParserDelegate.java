@@ -1418,6 +1418,7 @@ public class BeanDefinitionParserDelegate {
 	 * @return the decorated bean definition
 	 */
 	public BeanDefinitionHolder decorateBeanDefinitionIfRequired(Element ele, BeanDefinitionHolder originalDef) {
+		//ddj_054 这里分析的是bean 的顶层配置，不涉及父子类的层级，所以下面第三个参数传递了null
 		return decorateBeanDefinitionIfRequired(ele, originalDef, null);
 	}
 
@@ -1435,8 +1436,10 @@ public class BeanDefinitionParserDelegate {
 
 		// Decorate based on custom attributes first.
 		NamedNodeMap attributes = ele.getAttributes();
+		//ddj_055 遍历所有的属性，以及子节点（下面那个for循环是子节点）
 		for (int i = 0; i < attributes.getLength(); i++) {
 			Node node = attributes.item(i);
+			//ddj_056 从这儿进去，主要是默认bean 解析的自定义属性的解析方式
 			finalDefinition = decorateIfRequired(node, finalDefinition, containingBd);
 		}
 
@@ -1464,6 +1467,7 @@ public class BeanDefinitionParserDelegate {
 
 		String namespaceUri = getNamespaceURI(node);
 		if (namespaceUri != null && !isDefaultNamespace(namespaceUri)) {
+			// ddj_057 根据命名空间获取对应的处理器，进行处理
 			NamespaceHandler handler = this.readerContext.getNamespaceHandlerResolver().resolve(namespaceUri);
 			if (handler != null) {
 				BeanDefinitionHolder decorated =

@@ -795,6 +795,8 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 
 		if (beanDefinition instanceof AbstractBeanDefinition) {
 			try {
+				// ddj_059 这里针对 AbstractBeanDefinition 进行一个校验，这里面主要是针对 methodOverrides 属性进行的校验，验证其是否和工厂方法并存，或者其压根不存在，会报错的
+				// ddj_060 网上搜不到太多这块儿内容，我来说明下，还记得那两个标签不 lookup-method、replaced-method，解析文件 BeanDefinition 中的属性就叫 methodOverrides ,他们的作用是可以动态注入bean，和方法运行期替换的，点进方法里面看
 				((AbstractBeanDefinition) beanDefinition).validate();
 			}
 			catch (BeanDefinitionValidationException ex) {
@@ -803,8 +805,10 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 			}
 		}
 
+		// ddj_062 下面的逻辑是针对beanName 已经注册的情况的一个处理 beanDefinitionMap 是个全局变量
 		BeanDefinition existingDefinition = this.beanDefinitionMap.get(beanName);
 		if (existingDefinition != null) {
+			// ddj_063 如果beanName 已经注册了，而且设置了该bean 不允许覆盖的话，直接抛出异常，这个异常我们比较常见了，总有粘贴错的情况，就报下面的异常了
 			if (!isAllowBeanDefinitionOverriding()) {
 				throw new BeanDefinitionStoreException(beanDefinition.getResourceDescription(), beanName,
 						"Cannot register bean definition [" + beanDefinition + "] for bean '" + beanName +
@@ -832,11 +836,13 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 							"] with [" + beanDefinition + "]");
 				}
 			}
+			// ddj_064 加入map 缓存
 			this.beanDefinitionMap.put(beanName, beanDefinition);
 		}
 		else {
 			if (hasBeanCreationStarted()) {
 				// Cannot modify startup-time collection elements anymore (for stable iteration)
+				// ddj_065 上面有说beanDefinitionMap 是个全局变量，那么就会发生并发访问的情况的，所以这里添加个同步代码块，防止并发问题
 				synchronized (this.beanDefinitionMap) {
 					this.beanDefinitionMap.put(beanName, beanDefinition);
 					List<String> updatedDefinitions = new ArrayList<>(this.beanDefinitionNames.size() + 1);
@@ -860,6 +866,7 @@ public class DefaultListableBeanFactory extends AbstractAutowireCapableBeanFacto
 		}
 
 		if (existingDefinition != null || containsSingleton(beanName)) {
+			// ddj_066 这里重置了对应的beanName 的缓存，减轻系统负担
 			resetBeanDefinition(beanName);
 		}
 		else if (isConfigurationFrozen()) {
