@@ -235,15 +235,22 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @return an instance of the bean
 	 * @throws BeansException if the bean could not be created
 	 */
+
+	// ddj_096 我们是如何走到这里的呢？ 我们自己获取bean 实例的时候，其实会经常看到一个例子，那就是 BeanFactory bf = new XmlBeanFactory(new ClassPathResource("*.xml"));
+	// TestBean bean = (TestBean) bf.getBean("***Bean") 注意从 getBean 点进去，就会直接来到bean 加载的核心，这里要比 bean 解析复杂的多的多，所以慢点儿来,看底下这代码封装的
+	// 方法，开始一个一个解剖下
 	@SuppressWarnings("unchecked")
 	protected <T> T doGetBean(
 			String name, @Nullable Class<T> requiredType, @Nullable Object[] args, boolean typeCheckOnly)
 			throws BeansException {
 
+		// ddj_097 提取对应的 beanName，这里就有点儿蒙了，传进来的不就是 beanName 为啥还要取下？这可不一定，传进来的可能是别名，也可能是一个 FactoryBean ，所以需要解析
 		String beanName = transformedBeanName(name);
 		Object bean;
 
 		// Eagerly check singleton cache for manually registered singletons.
+		// ddj_098 尝试从缓存中加载单例，为啥要提前这么早的从单例中加载呢？因为在创建单例的 bean 的时候会存在依赖注入（一只想找个简洁有力的例子，想来想去都太啰嗦，其实说白了就俩字:招嫖,第三方介入，让你成功），你可能正在创建对象，这时候第三方也在创建，
+		// 首先浪费系统资源，也容易发生循环依赖，所以应该在创建 bean 之前，提前暴露下，这个对象我正在创建中（先放到一个缓存中），你如果正在依赖注入，就从这个缓存中拿（方法里面有同步代码块）
 		Object sharedInstance = getSingleton(beanName);
 		if (sharedInstance != null && args == null) {
 			if (logger.isDebugEnabled()) {
@@ -255,6 +262,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					logger.debug("Returning cached instance of singleton bean '" + beanName + "'");
 				}
 			}
+			// ddj_103 bean 的实例化，这里是有个前提的，就是从缓存中得到的bean ，才需要对其进行实例化，因为这里的 bean 是最原始的状态，并不一定是我们最终想要的 bean ，如果我们要对工厂 bean 进行处理，那么这里得到其实是工厂 bean 的初始状态
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 

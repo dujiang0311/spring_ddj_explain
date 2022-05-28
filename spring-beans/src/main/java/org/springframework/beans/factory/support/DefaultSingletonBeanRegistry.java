@@ -172,13 +172,18 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	 * @param allowEarlyReference whether early references should be created or not
 	 * @return the registered singleton object, or {@code null} if none found
 	 */
+	// ddj_099 这个方法涉及循环依赖的检测，以及设计
 	@Nullable
 	protected Object getSingleton(String beanName, boolean allowEarlyReference) {
+		// ddj_099 这个方法涉及循环依赖的检测，以及很多变量的记录存取,1、从singletonObjects（用于保存 BeanName 和创建 bean 实例的关系，） 尝试获取实例
 		Object singletonObject = this.singletonObjects.get(beanName);
 		if (singletonObject == null && isSingletonCurrentlyInCreation(beanName)) {
 			synchronized (this.singletonObjects) {
+				// ddj_100 2、也是保存 BeanName 和创建bean 实例之间的关系，和 singletonObjects 的不同之处在于，当一个 bean 被放到这里面后，那么到 bean 创建过程中就可以通过 getBean 方法获取到了，其作用一般是用来检测循环引用的
 				singletonObject = this.earlySingletonObjects.get(beanName);
+				// ddj_101 这里要注意下，allowEarlyReference 只有为 true 的时候，才可有放到 earlySingletonObjects 毕竟放进去的有可能是中间态，这里放到 earlySingletonObjects 这里，只是为了循环检测使用。
 				if (singletonObject == null && allowEarlyReference) {
+					// ddj_102 3、如果上面没获取到.再从 singletonFactories(用与保存 BeanName 和 创建 bean 的工厂之间的关系，) 里面获取
 					ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 					if (singletonFactory != null) {
 						singletonObject = singletonFactory.getObject();
