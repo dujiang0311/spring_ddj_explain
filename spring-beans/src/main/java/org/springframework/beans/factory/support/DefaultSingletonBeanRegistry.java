@@ -217,6 +217,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 				if (logger.isDebugEnabled()) {
 					logger.debug("Creating shared instance of singleton bean '" + beanName + "'");
 				}
+				// ddj_113 这里面记录了加载状态，这样便可以对循环依赖进行检测
 				beforeSingletonCreation(beanName);
 				boolean newSingleton = false;
 				boolean recordSuppressedExceptions = (this.suppressedExceptions == null);
@@ -224,6 +225,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
+					// ddj_014 加载单例后方法调用
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}
@@ -247,6 +249,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (recordSuppressedExceptions) {
 						this.suppressedExceptions = null;
 					}
+					// ddj_015 加载完成之后，需要将加载中状态抹除，这里都是准备工作，还没到真实创建bean 的过程
 					afterSingletonCreation(beanName);
 				}
 				if (newSingleton) {

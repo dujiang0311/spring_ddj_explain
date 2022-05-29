@@ -262,7 +262,10 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					logger.debug("Returning cached instance of singleton bean '" + beanName + "'");
 				}
 			}
-			// ddj_103 bean 的实例化，这里是有个前提的，就是从缓存中得到的bean ，才需要对其进行实例化，因为这里的 bean 是最原始的状态，并不一定是我们最终想要的 bean ，如果我们要对工厂 bean 进行处理，那么这里得到其实是工厂 bean 的初始状态
+			// ddj_103 bean 的实例化，这里是有个前提的，就是从缓存中得到的bean ，才需要对其进行实例化，因为这里的 bean 是最原始的状态，并不一定是我们最终想要的 bean ，
+			// 如果我们要对工厂 bean 进行处理，那么这里得到其实是工厂 bean 的初始状态,其实这个方法是个高频使用的方法，无论是从缓存获得的 bean 还是根据不同 scope 策略
+			// 加载的 bean , 我们得到 bean 做的第一件事就是调用下面这个方法检测正确性，主要是用于检测当前 bean 是否是 FactoryBean 类型的 bean ，如果是，那么需要调
+			// 用该 bean 对应的的FactoryBean 实例中的 getObject() 作为返回值。点进去看看
 			bean = getObjectForBeanInstance(sharedInstance, name, beanName, null);
 		}
 
@@ -321,6 +324,8 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 
 				// Create bean instance.
 				if (mbd.isSingleton()) {
+					// ddj_112 上面将实例获取bean 实例的过程，都是基于一个前提，那就是我们从缓存中拿到单例的bean 了，如果没拿到，其实我们就需要从头开始进行bean 加载，并放到缓存中了，找到这个方法可真不容易，饶了一大圈，
+					// 下面这个方法就是创建方法了，当然真正的创建方法，其实也不是在这里面实现的，这里主要做了三个事 1、 检查下缓存是不是已经加载了 2、如果没有，则标识下这个bean 处于正在加载的状态，3、加载单例前，在标记下加载状态
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
 							return createBean(beanName, mbd, args);
@@ -1633,6 +1638,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 	 * @param mbd the merged bean definition
 	 * @return the object to expose for the bean
 	 */
+	// ddj_104 大致看了下，基本上就是各种判断，1、FactoryBean 正确性验证 2、非 FactoryBean 不做处理 3、对 bean 进行转换
 	protected Object getObjectForBeanInstance(
 			Object beanInstance, String name, String beanName, @Nullable RootBeanDefinition mbd) {
 
@@ -1665,6 +1671,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				mbd = getMergedLocalBeanDefinition(beanName);
 			}
 			boolean synthetic = (mbd != null && mbd.isSynthetic());
+			// ddj_105  4、将从 Factory 中解析的  bean 的工作委托给下面这个方法
 			object = getObjectFromFactoryBean(factory, beanName, !synthetic);
 		}
 		return object;

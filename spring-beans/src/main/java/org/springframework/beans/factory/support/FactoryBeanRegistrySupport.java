@@ -94,10 +94,12 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 	 * @see org.springframework.beans.factory.FactoryBean#getObject()
 	 */
 	protected Object getObjectFromFactoryBean(FactoryBean<?> factory, String beanName, boolean shouldPostProcess) {
+		// ddj_106 判断是否是单例的，，如果是单例的，就不用反复创建，直接从缓存里面加载提高效率
 		if (factory.isSingleton() && containsSingleton(beanName)) {
 			synchronized (getSingletonMutex()) {
 				Object object = this.factoryBeanObjectCache.get(beanName);
 				if (object == null) {
+					// ddj_107 真正的实现实际上在这里面，
 					object = doGetObjectFromFactoryBean(factory, beanName);
 					// Only post-process and store if not put there already during getObject() call above
 					// (e.g. because of circular reference processing triggered by custom getBean calls)
@@ -106,6 +108,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 						object = alreadyThere;
 					}
 					else {
+						// ddj_109 这里判断了下是否后处理
 						if (shouldPostProcess) {
 							if (isSingletonCurrentlyInCreation(beanName)) {
 								// Temporarily return non-post-processed object, not storing it yet..
@@ -113,6 +116,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 							}
 							beforeSingletonCreation(beanName);
 							try {
+								// ddj_110 后处理之后，我们对返回的 bean 又做了哪些操作，点击去看看
 								object = postProcessObjectFromFactoryBean(object, beanName);
 							}
 							catch (Throwable ex) {
@@ -156,6 +160,7 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 	private Object doGetObjectFromFactoryBean(FactoryBean<?> factory, String beanName) throws BeanCreationException {
 		Object object;
 		try {
+			// ddj_108 进行权限验证
 			if (System.getSecurityManager() != null) {
 				AccessControlContext acc = getAccessControlContext();
 				try {
@@ -166,6 +171,8 @@ public abstract class FactoryBeanRegistrySupport extends DefaultSingletonBeanReg
 				}
 			}
 			else {
+				// ddj_108 找了半天，原来是在这儿通过此方法，创建的 bean ，为什么是这样的? 这里需要提到 FactoryBean 的调用方法，如果 bean 声明为 FactoryBean 类型，则当提取 bean 的时候，
+				// 并不是提取 FactoryBean ，而是 FactoryBean 中对应的 getObject() 返回的bean ，就是下面这行代码，并且直接返回了，我们看下接下来做了啥操作
 				object = factory.getObject();
 			}
 		}

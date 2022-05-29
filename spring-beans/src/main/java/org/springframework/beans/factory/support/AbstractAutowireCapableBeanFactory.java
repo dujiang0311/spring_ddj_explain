@@ -1834,6 +1834,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	@Override
 	protected Object postProcessObjectFromFactoryBean(Object object, String beanName) {
+		// ddj_111 这里大家要记得 spring 获取 bean 的规则有一项，就是保证所有 bean 初始化完成之后，都要调用注册 postProcessAfterInitialization 这个方法，后面针对这里面的代码会有详细说明，
+		// 其实我们自己也可以在重写该方法，针对性的定制自己的业务逻辑
 		return applyBeanPostProcessorsAfterInitialization(object, beanName);
 	}
 
