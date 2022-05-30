@@ -328,6 +328,7 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 					// 下面这个方法就是创建方法了，当然真正的创建方法，其实也不是在这里面实现的，这里主要做了三个事 1、 检查下缓存是不是已经加载了 2、如果没有，则标识下这个bean 处于正在加载的状态，3、加载单例前，在标记下加载状态
 					sharedInstance = getSingleton(beanName, () -> {
 						try {
+							// ddj_014 你永远无法指望一个方法里面做所有的事情，分工才能最大化效率，我们平时写代码的时候，可以参照spring 的写法，do 开头儿的，是真正做核心逻辑的函数，其他的函数都是做一些统筹工作
 							return createBean(beanName, mbd, args);
 						}
 						catch (BeansException ex) {

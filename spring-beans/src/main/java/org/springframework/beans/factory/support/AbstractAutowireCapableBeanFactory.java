@@ -468,6 +468,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Make sure bean class is actually resolved at this point, and
 		// clone the bean definition in case of a dynamically resolved Class
 		// which cannot be stored in the shared merged bean definition.
+		// ddj_114 根据设置的 class 属性或者根据 className 来解析 CLass
 		Class<?> resolvedClass = resolveBeanClass(mbd, beanName);
 		if (resolvedClass != null && !mbd.hasBeanClass() && mbd.getBeanClassName() != null) {
 			mbdToUse = new RootBeanDefinition(mbd);
@@ -475,6 +476,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		// Prepare method overrides.
+		// ddj_115 这里处理 override 属性，这里其实有一点儿需要注意的，那就是如果一个类中存在若干个重载方法，那么在函数调用及增强的时候，还需要根据参数类型进行匹配，来最终确定调用的到底是哪个函数，spring 在下面的方法做了这个操作，后续就直接可以拿来用了
 		try {
 			mbdToUse.prepareMethodOverrides();
 		}
@@ -484,8 +486,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		try {
+			// ddj_116 下面这个方法是在创建 bean 实例前，对 BeanDefinition 中的属性做些前置处理。
 			// Give BeanPostProcessors a chance to return a proxy instead of the target bean instance.
 			Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+			// ddj_119 当经过前置处理返回的结果不为空的时候，那么会直接忽略后续 bean 的创建，直接返回结果（AOP 功能的实现，就是基于此短路操作判断实现的）
+			// ddj_120 spring 的循环依赖处理，也是在上面的多个地方有做处理，大家可以自行搜索下相关文章：https://blog.csdn.net/chen2526264/article/details/80673598
 			if (bean != null) {
 				return bean;
 			}
@@ -496,6 +501,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		try {
+			// ddj_121 如果上面的短路操作没成功，那么就开始真正的创建 bean 了
 			Object beanInstance = doCreateBean(beanName, mbdToUse, args);
 			if (logger.isDebugEnabled()) {
 				logger.debug("Finished creating instance of bean '" + beanName + "'");
@@ -1033,8 +1039,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 				Class<?> targetType = determineTargetType(beanName, mbd);
 				if (targetType != null) {
+					// ddj_117 实例化前的后处理器应用，下面这个方法的目的是给子类一个修改 BeanDefinition 的机会，当程序经过这个方法之后，bean 可能已经不是我们认为的 bean 了，可能是通过的动态代理生成的额，这个后面也会说，对于bean 的创建流程，目前没大所谓
 					bean = applyBeanPostProcessorsBeforeInstantiation(targetType, beanName);
 					if (bean != null) {
+						// ddj_118 实例化后的后处理器（直接翻译下面的方法名），之前讲解从缓存中获取单例 bean 的时候，就提到过，Spring 中的一般规则就是在 bean 初始化完成后，尽可能的保证将注册的后处理器的 postProcessorsAfterInitialization 方法，应用到该 bean 中，
+						// 为啥妖这么做呢？其实还是重复创建的问题，如果bean 不为空的话，那么普通（非单例）bean 将不会重复创建，所以在下面方法应用了
 						bean = applyBeanPostProcessorsAfterInitialization(bean, beanName);
 					}
 				}
