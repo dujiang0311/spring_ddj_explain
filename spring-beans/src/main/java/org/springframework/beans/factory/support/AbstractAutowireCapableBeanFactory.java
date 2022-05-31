@@ -538,10 +538,12 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Instantiate the bean.
 		BeanWrapper instanceWrapper = null;
+		// ddj_122 如果是单例则需要首先清除缓存
 		if (mbd.isSingleton()) {
 			instanceWrapper = this.factoryBeanInstanceCache.remove(beanName);
 		}
 		if (instanceWrapper == null) {
+			// ddj_123 创建 bean 的实例
 			instanceWrapper = createBeanInstance(beanName, mbd, args);
 		}
 		Object bean = instanceWrapper.getWrappedInstance();
@@ -1092,6 +1094,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	protected BeanWrapper createBeanInstance(String beanName, RootBeanDefinition mbd, @Nullable Object[] args) {
 		// Make sure bean class is actually resolved at this point.
+		// ddj_124 解析 class
 		Class<?> beanClass = resolveBeanClass(mbd, beanName);
 
 		if (beanClass != null && !Modifier.isPublic(beanClass.getModifiers()) && !mbd.isNonPublicAccessAllowed()) {
@@ -1104,6 +1107,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			return obtainFromSupplier(instanceSupplier, beanName);
 		}
 
+		// ddj_125 如果工厂方法不为空则使用工厂方法初始化策略（针对 BeanDefinition 中的 factoryMethodName 属性，或者配置文件中配置的 factory-method ，如果存在，那么 spring 容器就会尝试调用下面的方法，根据 其他配置一起生成bean 的实例并返回）
 		if (mbd.getFactoryMethodName() != null) {
 			return instantiateUsingFactoryMethod(beanName, mbd, args);
 		}
@@ -1112,6 +1116,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		boolean resolved = false;
 		boolean autowireNecessary = false;
 		if (args == null) {
+			// ddj_126 一个类有多个构造函数，每个构造函数又有多个不同的发那参数，所以在调用前，先锁定构造函数或对应的工厂方法，解析构造函数，并进行构造函数实例化，一个类有N个构造函数， spring 在根据参数及类型判断最终会使用哪个构造函数进行实例化。
+			// 这个判断的过程比较消耗系统性能（这里其实有点儿模棱两可的表述，其实损耗性能主要损耗在每次都解析），所以采用了缓存机制，如果没加载过，就进行加载并且对此属性进行赋值 resolvedConstructorOrFactoryMethod
 			synchronized (mbd.constructorArgumentLock) {
 				if (mbd.resolvedConstructorOrFactoryMethod != null) {
 					resolved = true;
@@ -1119,11 +1125,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				}
 			}
 		}
+		// ddj_127 对于实例的创建，分成两种情况，一种是通用实例化，一种是带有参数的实例化，带着参数的实例化，想也能知道，这里面的判断逻辑应该会复杂些，点进去看看，里面的逻辑真的是又臭又长
 		if (resolved) {
 			if (autowireNecessary) {
 				return autowireConstructor(beanName, mbd, null, null);
 			}
 			else {
+				// ddj_148 不带参数的实例化过程
 				return instantiateBean(beanName, mbd);
 			}
 		}
@@ -1229,6 +1237,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			Object beanInstance;
 			if (System.getSecurityManager() != null) {
 				beanInstance = AccessController.doPrivileged(
+						// ddj_149 这里没没啥逻辑，直接实例化策略进行实例化了 看这个方法 instantiate
 						(PrivilegedAction<Object>) () -> getInstantiationStrategy().instantiate(mbd, beanName, this),
 						getAccessControlContext());
 			}
@@ -1279,6 +1288,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	protected BeanWrapper autowireConstructor(
 			String beanName, RootBeanDefinition mbd, @Nullable Constructor<?>[] ctors, @Nullable Object[] explicitArgs) {
 
+		// ddj_128 前面的构造函数没啥可看的，主要看这个 autowireConstructor 记得下面的入参 ctors,explicitArgs 上面传进来的是 null , 严重怀疑底下这个代码不是一拨人写的，
+		// 都 5.0 版本了，也没重构过，spring 的常规逻辑不就是将复杂方法，拆分成N 个小函数，上层是对下层的准备及概要
 		return new ConstructorResolver(this).autowireConstructor(beanName, mbd, ctors, explicitArgs);
 	}
 

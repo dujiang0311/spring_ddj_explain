@@ -118,26 +118,33 @@ class ConstructorResolver {
 		ArgumentsHolder argsHolderToUse = null;
 		Object[] argsToUse = null;
 
+		// ddj_129 构造函数参数确定，如果不为空（客户端调用getBean 方法的时候可以由用户指定参数的，不只是传入个 beanName 那么简单，当然这只是用于静态工厂的调用） ，argsToUse 那么就可直接取了
 		if (explicitArgs != null) {
 			argsToUse = explicitArgs;
 		}
 		else {
+			// ddj_130 如果getBean 方法没有指定的话，那么尝试从配置文件中解析
 			Object[] argsToResolve = null;
+			// ddj_131 尝试从缓存中获取
 			synchronized (mbd.constructorArgumentLock) {
 				constructorToUse = (Constructor<?>) mbd.resolvedConstructorOrFactoryMethod;
 				if (constructorToUse != null && mbd.constructorArgumentsResolved) {
 					// Found a cached constructor...
 					argsToUse = mbd.resolvedConstructorArguments;
 					if (argsToUse == null) {
+						// ddj_132 配置的构造函数参数
 						argsToResolve = mbd.preparedConstructorArguments;
 					}
 				}
 			}
+
 			if (argsToResolve != null) {
+				// ddj_132 如果缓存中存在，下面做了一个事就是构造函数的参数类型转换，如果给定 的构造函数 A(int,int)，但我们配置中是("1","1") 的话，下面这个方法会做一个转换(1,1)
 				argsToUse = resolvePreparedArguments(beanName, mbd, bw, constructorToUse, argsToResolve);
 			}
 		}
 
+		// ddj_132 如果没被缓存，那么从配置文件中尝试解析
 		if (constructorToUse == null) {
 			// Need to resolve the constructor.
 			boolean autowiring = (chosenCtors != null ||
@@ -149,8 +156,11 @@ class ConstructorResolver {
 				minNrOfArgs = explicitArgs.length;
 			}
 			else {
+				// ddj_133 提取配置文件中配置的构造函数参数（当前 spring 配置文件信息都在 BeanDefinition 中，所以下面这个方法  mbd.getConstructorArgumentValues() 是直接可以获取配置信息）
 				ConstructorArgumentValues cargs = mbd.getConstructorArgumentValues();
+				// ddj_134 用于承载解析后的构造函数值
 				resolvedValues = new ConstructorArgumentValues();
+				// ddj_135 有了配置信息（上面 的返回 cargs），就可以直接获取其中的参数值信息，参数值信息可以直接指定值，比如：直接指定某个值为原始的 String 类型，或者是另一个 bean 的引用，并返回解析到的参数个数
 				minNrOfArgs = resolveConstructorArguments(beanName, mbd, bw, cargs, resolvedValues);
 			}
 
@@ -168,6 +178,7 @@ class ConstructorResolver {
 							"] from ClassLoader [" + beanClass.getClassLoader() + "] failed", ex);
 				}
 			}
+			// ddj_136 排序给定的构造函数，是按照参数数量进行降序排序的（public 的在非 public 之前），这样可以在遍历的情况的下，快速排除掉数量个数
 			AutowireUtils.sortConstructors(candidates);
 			int minTypeDiffWeight = Integer.MAX_VALUE;
 			Set<Constructor<?>> ambiguousConstructors = null;
@@ -179,22 +190,29 @@ class ConstructorResolver {
 				if (constructorToUse != null && argsToUse.length > paramTypes.length) {
 					// Already found greedy constructor that can be satisfied ->
 					// do not look any further, there are only less greedy constructors left.
+					// ddj_137 把上面的注释翻译了下：已经找到可以满足的贪心构造器了，就别再看了，贪心构造器就少了。
 					break;
 				}
 				if (paramTypes.length < minNrOfArgs) {
+					// ddj_138 参数个数不相等，就跳过
 					continue;
 				}
 
 				ArgumentsHolder argsHolder;
 				if (resolvedValues != null) {
+					// ddj_139 有参数则根据值构造对应参数类型的参数
 					try {
+						// ddj_140 注释上获取参数名称
 						String[] paramNames = ConstructorPropertiesChecker.evaluate(candidate, paramTypes.length);
 						if (paramNames == null) {
+							// ddj_141 获取参数名称的探索器
 							ParameterNameDiscoverer pnd = this.beanFactory.getParameterNameDiscoverer();
 							if (pnd != null) {
+								// ddj_142 获取指定构造函数的参数名称
 								paramNames = pnd.getParameterNames(candidate);
 							}
 						}
+						// ddj_143 根据名称和参数类型，创建持有者
 						argsHolder = createArgumentArray(beanName, mbd, resolvedValues, bw, paramTypes, paramNames,
 								getUserDeclaredConstructor(candidate), autowiring);
 					}
@@ -215,12 +233,14 @@ class ConstructorResolver {
 					if (paramTypes.length != explicitArgs.length) {
 						continue;
 					}
+					// ddj_144 构造函数没有参数的情况
 					argsHolder = new ArgumentsHolder(explicitArgs);
 				}
 
 				int typeDiffWeight = (mbd.isLenientConstructorResolution() ?
 						argsHolder.getTypeDifferenceWeight(paramTypes) : argsHolder.getAssignabilityWeight(paramTypes));
 				// Choose this constructor if it represents the closest match.
+				// ddj_145 翻译下：如果它代表最接近的匹配，则选择此构造函数。
 				if (typeDiffWeight < minTypeDiffWeight) {
 					constructorToUse = candidate;
 					argsHolderToUse = argsHolder;
@@ -257,6 +277,7 @@ class ConstructorResolver {
 			}
 
 			if (explicitArgs == null) {
+				// ddj_146 放缓存
 				argsHolderToUse.storeCache(mbd, constructorToUse);
 			}
 		}
@@ -275,7 +296,7 @@ class ConstructorResolver {
 			else {
 				beanInstance = strategy.instantiate(mbd, beanName, this.beanFactory, constructorToUse, argsToUse);
 			}
-
+			// ddj_147 将构建的实例加入到 bw 里面
 			bw.setBeanInstance(beanInstance);
 			return bw;
 		}
