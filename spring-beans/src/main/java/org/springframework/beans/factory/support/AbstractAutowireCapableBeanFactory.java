@@ -568,6 +568,8 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Eagerly cache singletons to be able to resolve circular references
 		// even when triggered by lifecycle interfaces like BeanFactoryAware.
+		// ddj_152 翻译下上面的内容：即使被 BeanFactoryAware 等生命周期接口触发，也急切地缓存单例以解析循环引用。下面的判断直接翻译下就可以理解，这里说下这个方法：isSingletonCurrentlyInCreation，
+		// 在 spring 中会有一个专门的属性 singletonsCurrentlyInCreation 用于记录 bean 的加载状态，开始创建的时候回记录，等创建完成以后会移除
 		boolean earlySingletonExposure = (mbd.isSingleton() && this.allowCircularReferences &&
 				isSingletonCurrentlyInCreation(beanName));
 		if (earlySingletonExposure) {
@@ -575,12 +577,17 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 				logger.debug("Eagerly caching bean '" + beanName +
 						"' to allow for resolving potential circular references");
 			}
+			// ddj_153 当上面条件都满足的时候，就会走到这里 addSingletonFactory ，spring 为了处理循环依赖，会从缓存中检测是否已经有创建好的 bean 或者已经创建好的对应 bean 的 objectFactory ，
+			// 如果存在，就不会继续执行，而是直接调用 objectFactory 区创建对象，在getEarlyBeanReference 函数中，没有特别复杂的逻辑，但是整体串下来，就是 Spring 解决循环依赖的办法：在A依赖B，B又
+			// 依赖A 的时候，A先创建，然后 addSingletonFactory，填充属性的（populateBean，下面的方法）时候，去创建B，然后也 addSingletonFactory，在去属性填充的过程中，调用了 getBean 方法中断
+			// 了A 中的属性电充，使得B持有A的时候仅仅是初始化，并没有任何属性填充的A，所以A中创建好的属性，也可以被B 中填充的A 获取，由此解决了循环依赖的问题。
 			addSingletonFactory(beanName, () -> getEarlyBeanReference(beanName, mbd, bean));
 		}
 
 		// Initialize the bean instance.
 		Object exposedObject = bean;
 		try {
+			// ddj_154 上面其实已经提到了这个属性注入的方法，直接点进去看吧
 			populateBean(beanName, mbd, instanceWrapper);
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
@@ -1315,6 +1322,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		// Give any InstantiationAwareBeanPostProcessors the opportunity to modify the
 		// state of the bean before properties are set. This can be used, for example,
 		// to support styles of field injection.
+		// ddj_155 postProcessAfterInstantiation 这个方法是控制程序是否还继续进行属性注入的
 		if (!mbd.isSynthetic() && hasInstantiationAwareBeanPostProcessors()) {
 			for (BeanPostProcessor bp : getBeanPostProcessors()) {
 				if (bp instanceof InstantiationAwareBeanPostProcessor) {
@@ -1328,15 +1336,18 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		PropertyValues pvs = (mbd.hasPropertyValues() ? mbd.getPropertyValues() : null);
 
+		// ddj_156 根据注入类型，提取依赖的bean 并统一存入 PropertyValues 里面（直接看代码就可以看出来0）
 		int resolvedAutowireMode = mbd.getResolvedAutowireMode();
 		if (resolvedAutowireMode == AUTOWIRE_BY_NAME || resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
 			MutablePropertyValues newPvs = new MutablePropertyValues(pvs);
 			// Add property values based on autowire by name if applicable.
 			if (resolvedAutowireMode == AUTOWIRE_BY_NAME) {
+				// ddj_157 先看下下面这个方法是如何实现的，点进去看看，其实也不复杂，针对传入的参数，找到已经加载的 bean 并且递归的实现(一个 bean 下可能有N 个属性，当然到递归注入了)
 				autowireByName(beanName, mbd, bw, newPvs);
 			}
 			// Add property values based on autowire by type if applicable.
 			if (resolvedAutowireMode == AUTOWIRE_BY_TYPE) {
+				// ddj_158 这个根据类型注入的复杂度就要高很多了
 				autowireByType(beanName, mbd, bw, newPvs);
 			}
 			pvs = newPvs;
@@ -1423,6 +1434,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		Set<String> autowiredBeanNames = new LinkedHashSet<>(4);
+		// ddj_159 寻找 bw 中需要依赖注入的属性
 		String[] propertyNames = unsatisfiedNonSimpleProperties(mbd, bw);
 		for (String propertyName : propertyNames) {
 			try {
@@ -1434,6 +1446,11 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					// Do not allow eager init for type matching in case of a prioritized post-processor.
 					boolean eager = !(bw.getWrappedInstance() instanceof PriorityOrdered);
 					DependencyDescriptor desc = new AutowireByTypeDependencyDescriptor(methodParam, eager);
+					// ddj_160 解析指定的 beanName 的属性所匹配的值，并把解析到的属性名称存储在 autowiredBeanNames 中，当属性存在多个封装的bean 时，将会把所有匹配的 bean 都注入.spring 提供了对集合类型注入的支持（平时用的不多）
+					// @Autowired
+					// private List<Test> tests;  spring 将会把所有与 Test 匹配的类型找出来并注入到 tests 属性中，正是由于这一原因，这里新建了一个局部变量 autowiredBeanNames，用于存储所有符合类型依赖的 bean ,至于寻找类型匹
+					// 配的实现，封装在了 resolveDependency 函数中了
+
 					Object autowiredArgument = resolveDependency(desc, beanName, autowiredBeanNames, converter);
 					if (autowiredArgument != null) {
 						pvs.add(propertyName, autowiredArgument);
