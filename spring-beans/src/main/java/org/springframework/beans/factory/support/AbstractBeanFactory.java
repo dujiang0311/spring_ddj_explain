@@ -407,6 +407,11 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				throw new BeanNotOfRequiredTypeException(name, requiredType, bean.getClass());
 			}
 		}
+		//ddj_173 至此，我们已经将 BeanFactory 的相关的xml 解析，加载相关的源码都走了一遍，回到最初测试的代码，我们会明白我们是如何把 xml 文件的中的属性，实例化并注入到我们的 BeanFactory 当中的了
+		// BeanFactory bf = new XmlBeanFactory(new ClassPathResource("*.xml"));
+		// TestBean bean = (TestBean) bf.getBean("***Bean")
+		//ddj_174 其实大家都是有个疑惑的，尤其是用过 spring 的小伙伴，好像大家并不常用 BeanFactory 去加载 bean , 我们项目代码中经常见到的其实是： ApplicationContext（更丰富的扩展）,其实这个也是Spring 提供的一个接口，
+		// 用于扩展 BeanFactory 中现有的功能
 		return (T) bean;
 	}
 
@@ -1723,11 +1728,14 @@ public abstract class AbstractBeanFactory extends FactoryBeanRegistrySupport imp
 				// Register a DisposableBean implementation that performs all destruction
 				// work for the given bean: DestructionAwareBeanPostProcessors,
 				// DisposableBean interface, custom destroy method.
+				// ddj_172 单例模式下注册需要销毁的 bean（这里需要关注下，只有单例的bean 在初始完成以后才需要销毁） ,其实可以直接翻译下上面的注释：
+				// 注册一个为给定 bean 执行所有销毁工作的 DisposableBean 实现：DestructionAwareBeanPostProcessors、DisposableBean 接口、自定义销毁方法。
 				registerDisposableBean(beanName,
 						new DisposableBeanAdapter(bean, beanName, mbd, getBeanPostProcessors(), acc));
 			}
 			else {
 				// A bean with a custom scope...
+				// ddj_173 自定义 scope 的处理
 				Scope scope = this.scopes.get(mbd.getScope());
 				if (scope == null) {
 					throw new IllegalStateException("No Scope registered for scope name '" + mbd.getScope() + "'");

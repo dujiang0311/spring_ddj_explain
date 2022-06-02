@@ -589,6 +589,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		try {
 			// ddj_154 上面其实已经提到了这个属性注入的方法，直接点进去看吧
 			populateBean(beanName, mbd, instanceWrapper);
+			// ddj_165 继续向下走，其这里实际上针对 init-method 的属性的处理，这个属性的作用是在 bean 实例化前，调用 init-method 指定的方法来根据用户业务进行相应的实例化。可是我们上面明明已经进行了属性填充，看来走到这里，应该是有一套覆盖逻辑了，点进去卡
 			exposedObject = initializeBean(beanName, exposedObject, mbd);
 		}
 		catch (Throwable ex) {
@@ -630,6 +631,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 
 		// Register bean as disposable.
 		try {
+			// ddj_171 spring 中不但提供了初始化方法的扩展入口，对于销毁方法的扩展也存在 就是 destroy-method 或者注册后处理器 DestructionAwareBeanPostProcessor 来统一销毁 bean
 			registerDisposableBeanIfNecessary(beanName, bean, mbd);
 		}
 		catch (BeanDefinitionValidationException ex) {
@@ -1378,6 +1380,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		}
 
 		if (pvs != null) {
+			// ddj_161 运行到这儿，已经完成了对所有注入属性的获取，但是获取的属性属性还是以 PropertyValues 的形式存在，还并没有应用到已经实例化的 bean 中，下面方法就是干这个事情的。
 			applyPropertyValues(beanName, mbd, bw, pvs);
 		}
 	}
@@ -1613,6 +1616,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			original = mpvs.getPropertyValueList();
 		}
 		else {
+			// ddj_162 使用原始的属性获取方法
 			original = Arrays.asList(pvs.getPropertyValues());
 		}
 
@@ -1620,11 +1624,13 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 		if (converter == null) {
 			converter = bw;
 		}
+		// ddj_163 获取对应的解析器
 		BeanDefinitionValueResolver valueResolver = new BeanDefinitionValueResolver(this, beanName, mbd, converter);
 
 		// Create a deep copy, resolving any references for values.
 		List<PropertyValue> deepCopy = new ArrayList<>(original.size());
 		boolean resolveNecessary = false;
+		// ddj_164 遍历属性，将属性转换为对应类的对应属性的类型
 		for (PropertyValue pv : original) {
 			if (pv.isConverted()) {
 				deepCopy.add(pv);
@@ -1716,15 +1722,19 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			}, getAccessControlContext());
 		}
 		else {
+			// ddj_166 对特殊的 bean 处理：Aware、BeanCLassLoaderAware、BeanFactoryAware 这些 所谓的 aware 类，实际上就是我们在初始化对应接口的 bean 的时候，spring 容器会将其前缀注入到其中，
+			// 举个栗子：BeanFactoryAware 的 bean 在初始化之后，spring 将会注入BeanFactory 进去，点进去看看就知道了
 			invokeAwareMethods(beanName, bean);
 		}
 
 		Object wrappedBean = bean;
 		if (mbd == null || !mbd.isSynthetic()) {
+			// ddj_167 和下面那个处理器应用一样，都是预留给研发的可自定义的方法，让用户能够根据自己的业务需求进行相应处理
 			wrappedBean = applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
 		}
 
 		try {
+			// ddj_168 激活自定义的 init 方法 ，如果客户不是用的 init-method 配置的自定义方法，而是直接实现了 InitializeBean 接口，并且在 afterPropertiesSet 中实现自己的初始化业务逻辑，点进去看看
 			invokeInitMethods(beanName, wrappedBean, mbd);
 		}
 		catch (Throwable ex) {
@@ -1733,6 +1743,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 					beanName, "Invocation of init method failed", ex);
 		}
 		if (mbd == null || !mbd.isSynthetic()) {
+
 			wrappedBean = applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
 		}
 
@@ -1770,8 +1781,9 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 	 */
 	protected void invokeInitMethods(String beanName, Object bean, @Nullable RootBeanDefinition mbd)
 			throws Throwable {
-
+		// ddj_169 首先会检查是否是 InitializingBean，如果是的话直接调用 afterPropertiesSet 方法
 		boolean isInitializingBean = (bean instanceof InitializingBean);
+		//
 		if (isInitializingBean && (mbd == null || !mbd.isExternallyManagedInitMethod("afterPropertiesSet"))) {
 			if (logger.isDebugEnabled()) {
 				logger.debug("Invoking afterPropertiesSet() on bean with name '" + beanName + "'");
@@ -1797,6 +1809,7 @@ public abstract class AbstractAutowireCapableBeanFactory extends AbstractBeanFac
 			if (StringUtils.hasLength(initMethodName) &&
 					!(isInitializingBean && "afterPropertiesSet".equals(initMethodName)) &&
 					!mbd.isExternallyManagedInitMethod(initMethodName)) {
+				// ddj_170 调用自定义初始化方法
 				invokeCustomInitMethod(beanName, bean, mbd);
 			}
 		}
