@@ -517,12 +517,15 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	public void refresh() throws BeansException, IllegalStateException {
 		synchronized (this.startupShutdownMonitor) {
 			// Prepare this context for refreshing.
+			// ddj_179 翻译下上面： 准备此上下文以进行刷新，准备工作，主要是对系统属性和环境变量的初始化及验证
 			prepareRefresh();
 
 			// Tell the subclass to refresh the internal bean factory.
+			// ddj_182 从字面上理解，就是获取 BeanFactory ，经过这个方法之后，ApplicationContext 就拥有了 BeanFactory 的全部功能了
 			ConfigurableListableBeanFactory beanFactory = obtainFreshBeanFactory();
 
 			// Prepare the bean factory for use in this context.
+			// ddJ_192 到此为止，搜spring 已经完成了对配置的解析，那么 ApplicationContext 在功能上的扩展也由此展开了
 			prepareBeanFactory(beanFactory);
 
 			try {
@@ -593,10 +596,12 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		}
 
 		// Initialize any placeholder property sources in the context environment.
+		// ddj_180 空方法，预留给子类的实现，客户可以在这里进行个性化的属性处理转换并设置
 		initPropertySources();
 
 		// Validate that all properties marked as required are resolvable:
 		// see ConfigurablePropertyResolver#setRequiredProperties
+		// ddj_181 用于获取属性的正确性验证，比如你程序运行过程必须要某个系统变量，程序才可以运行，那么就可以重写下面的方法，进行强制校验
 		getEnvironment().validateRequiredProperties();
 
 		// Store pre-refresh ApplicationListeners...
@@ -630,6 +635,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * @see #getBeanFactory()
 	 */
 	protected ConfigurableListableBeanFactory obtainFreshBeanFactory() {
+		// ddj_183 初始化 BeanFactory ，并进行XML 的读取。得到BeanFactory 记录在当前实体的属性中
 		refreshBeanFactory();
 		ConfigurableListableBeanFactory beanFactory = getBeanFactory();
 		if (logger.isDebugEnabled()) {

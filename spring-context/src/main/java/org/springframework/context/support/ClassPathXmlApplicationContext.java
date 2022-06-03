@@ -81,6 +81,8 @@ public class ClassPathXmlApplicationContext extends AbstractXmlApplicationContex
 	 * @param configLocation resource location
 	 * @throws BeansException if context creation failed
 	 */
+	// ddj_175 很多情况下我们一般都是用 ApplicationContext 的， 使用 ApplicationContext 加载 XML 的方式是什么呢？ 如下：
+	// ApplicationContext ac = new ClassPathXmlApplicationContext("*.xml"); 我们当然还是从这段代码做为切入点去看看其解析的过程
 	public ClassPathXmlApplicationContext(String configLocation) throws BeansException {
 		this(new String[] {configLocation}, true, null);
 	}
@@ -139,8 +141,10 @@ public class ClassPathXmlApplicationContext extends AbstractXmlApplicationContex
 			throws BeansException {
 
 		super(parent);
+		// ddj_176 支持多个配置文件以数组的方式同时传入
 		setConfigLocations(configLocations);
 		if (refresh) {
+			// ddj_178 一看这个方法就能干大事，里面几乎包含了 ApplicationContext 中提供的全部功能，点进去看你就会发现，其逻辑很清晰
 			refresh();
 		}
 	}

@@ -124,9 +124,13 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 			closeBeanFactory();
 		}
 		try {
+			// ddj_184 下面这行代码不知道还有印象没，那就是 BeanFactory 有个XmlBeanFactory 继承自 DefaultListableBeanFactory ，就意味着 DefaultListableBeanFactory 是容器的基础
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
+			// ddj_185 为序列化指定一个ID,这块儿有点儿迷，暂时猜不到是干嘛用的
 			beanFactory.setSerializationId(getId());
+			// ddj_186 这里是定制 BeanFactory
 			customizeBeanFactory(beanFactory);
+			// ddj_189 我们实际上还需 XmlBeanDefinitionReader 来读取 XML 文件的
 			loadBeanDefinitions(beanFactory);
 			this.beanFactory = beanFactory;
 		}
@@ -212,9 +216,11 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * @see DefaultListableBeanFactory#setAllowEagerClassLoading
 	 */
 	protected void customizeBeanFactory(DefaultListableBeanFactory beanFactory) {
+		// ddj_187 如果属性 allowBeanDefinitionOverriding （允许 Bean 定义覆盖） 不为空，设置给 beanFactory 对象相应属性
 		if (this.allowBeanDefinitionOverriding != null) {
 			beanFactory.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
 		}
+		// ddj_188 上面同理，是够允许循环依赖，如果想设置的话，就子类覆盖的方式，重写
 		if (this.allowCircularReferences != null) {
 			beanFactory.setAllowCircularReferences(this.allowCircularReferences);
 		}

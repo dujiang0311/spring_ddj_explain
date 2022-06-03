@@ -80,10 +80,12 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 	@Override
 	protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
 		// Create a new XmlBeanDefinitionReader for the given BeanFactory.
+		// ddj_190 为指定的 beanFactory 创建XmlBeanDefinitionReader
 		XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
 
 		// Configure the bean definition reader with this context's
 		// resource loading environment.
+		// ddj_191 下面是对环境变量设置和覆盖
 		beanDefinitionReader.setEnvironment(this.getEnvironment());
 		beanDefinitionReader.setResourceLoader(this);
 		beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
@@ -91,6 +93,7 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 		// Allow a subclass to provide custom initialization of the reader,
 		// then proceed with actually loading the bean definitions.
 		initBeanDefinitionReader(beanDefinitionReader);
+		// ddj_192 初始化之后，就可以进行配置文件的读取了，和之前 BeanFactory 的套路一毛一样了，点进去就能看到我们组开始解析 XML 的路径了，就不重复说了，就是串行的代码阅读
 		loadBeanDefinitions(beanDefinitionReader);
 	}
 
