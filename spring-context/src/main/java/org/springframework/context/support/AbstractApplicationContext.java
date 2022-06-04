@@ -530,30 +530,44 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 			try {
 				// Allows post-processing of the bean factory in context subclasses.
+				// ddj_199 这个方法的作用，大家在平时工作中一定会遇到，那就是当我们XML 中有此写法的时候 ${jdbc.url} 我们想知道 jdbc.url对应的真实路径是什么的时候，肯定会去 *.properties 文件去查找对应的路径 jdbc.url=mysql://******,
+				// spring 是怎么加载的进去的呢，首先是是如何加载的*.properties，然后才是如何获取，你可以在你的任何一个企业项目中的XML 文件中，搜索下这个类 PropertyPlaceholderConfigurer, 此类间接继承了和这个类 BeanFactoryPostProcessor，
+				// 这个接口有个特性,当Spring 加载了任何实现此 bean 的配置时，都会在 bean 工厂载入所有的bean 之后执行下面  postProcessBeanFactory  方法。PropertyPlaceholderConfigurer 继承了这个类 PropertyResourceConfigurer，
+				// PropertyResourceConfigurer 这个类里面有个 postProcessBeanFactory 方法，点进去看里面的实现，里面有三个方法（mergeProperties、convertProperties、processProperties）就是分别得到配置，将配置转换为合适的类型，最后
+				// 将配置内容告知 BeanFactory ，就实现了我们想要的效果，PropertyResourceConfigurer 这类实现了 BeanFactoryPostProcessor 这个接口，使得 BeanFactory 实例化任何 bean 之前获得相关的配置信息，并正确解析 bean 描述文件中的变量引用
 				postProcessBeanFactory(beanFactory);
 
 				// Invoke factory processors registered as beans in the context.
+				// ddj_200 当我们想屏蔽掉 XML 中的某些属性的时候，可以通过实现  BeanFactoryPostProcessor 的 postProcessBeanFactory 这个方法，来做自定义操作，那么 BeanFactoryPostProcessor 类的调用过程就要从下面这个方法里面寻求答案了
 				invokeBeanFactoryPostProcessors(beanFactory);
 
 				// Register bean processors that intercept bean creation.
+				// ddj_206 Spring 中我们常用的大部分功能，都是通过后处理器进行扩展的，这也是 spring 的一大特性，如果我们想在获取每个 bean 之前，打印一些标识字符串什么的，就可以实现 InstantiationAwareBeanPostProcessor 这个接口的这个方法
+				// postProcessBeforeInstantiation 就可以达成目的。那么我们探索下面方法的具体实现，其实和上面的方法差不多，
 				registerBeanPostProcessors(beanFactory);
 
 				// Initialize message source for this context.
+				// ddj_207 初始化消息源
 				initMessageSource();
 
 				// Initialize event multicaster for this context.
+				// ddj_208 观察者模式的事件监听机制，spring 是如何初始化的呢？点进去看看
 				initApplicationEventMulticaster();
 
 				// Initialize other special beans in specific context subclasses.
 				onRefresh();
 
 				// Check for listener beans and register them.
+				// ddj_212 注册监听器，spring 在这里面做了啥事呢？
 				registerListeners();
 
 				// Instantiate all remaining (non-lazy-init) singletons.
+				// ddj_215 初始化非延迟加载单例 ，其中包含转换服务（ConversionService）的设置、配置冻结以及非延迟加载的bean 初始化工作
 				finishBeanFactoryInitialization(beanFactory);
 
 				// Last step: publish corresponding event.
+				// ddj_219 在 spring 中还提供了 Lifecycle 接口，实现此接口后 spring 会保证在启动的时候，调用其 start 方法开始生命周期，并在 spring 关闭的时候调用 stop 方法来结束生命周期，通常用来配置后台程序，
+				// 在启动后一追运行。而 ApplicationContext 的初始化最后正是为了保证这一功能的实现
 				finishRefresh();
 			}
 
@@ -652,11 +666,16 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	protected void prepareBeanFactory(ConfigurableListableBeanFactory beanFactory) {
 		// Tell the internal bean factory to use the context's class loader etc.
 		beanFactory.setBeanClassLoader(getClassLoader());
+		// ddj_193 这里是增加了 SpEL 语言的支持，作用就是能在运行期构建复杂表达式，其实就是一个写法 #{} 放到XML 文件的引用里面
 		beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResolver(beanFactory.getBeanClassLoader()));
+		// ddj_194 增加属性注册编辑器，这个主要针对类型转换的处理，在依赖注入的过程中，针对 Date 类型的转换，如果直接注入，程序实际上是会报错的，这里就是自定义处理的地方
 		beanFactory.addPropertyEditorRegistrar(new ResourceEditorRegistrar(this, getEnvironment()));
 
 		// Configure the bean factory with context callbacks.
+		// ddj_195 添加 ApplicationContextAwareProcessor处理器，也就是在 spring 激活 init-method 属性前后，会调用两个方法,postProcessAfterInitialization 和 postProcessBeforeInitialization ，
+		// 下面这个类，也是同样的，不过 postProcessAfterInitialization 方法没做特殊操作，主要可以看看 postProcessBeforeInitialization
 		beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+		// ddj_197 设置几个忽略依赖，是因为上面那步  invokeAwareInterfaces 方法中，已经调用过的 Aware 类，接下来当然是为了避免重复的依赖注入忽略下他们
 		beanFactory.ignoreDependencyInterface(EnvironmentAware.class);
 		beanFactory.ignoreDependencyInterface(EmbeddedValueResolverAware.class);
 		beanFactory.ignoreDependencyInterface(ResourceLoaderAware.class);
@@ -666,6 +685,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 
 		// BeanFactory interface not registered as resolvable type in a plain factory.
 		// MessageSource registered (and found for autowiring) as a bean.
+		// ddj_198 注册依赖
 		beanFactory.registerResolvableDependency(BeanFactory.class, beanFactory);
 		beanFactory.registerResolvableDependency(ResourceLoader.class, this);
 		beanFactory.registerResolvableDependency(ApplicationEventPublisher.class, this);
@@ -709,6 +729,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * <p>Must be called before singleton instantiation.
 	 */
 	protected void invokeBeanFactoryPostProcessors(ConfigurableListableBeanFactory beanFactory) {
+		// ddj_201 从这里进去
 		PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, getBeanFactoryPostProcessors());
 
 		// Detect a LoadTimeWeaver and prepare for weaving, if found in the meantime
@@ -769,6 +790,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void initApplicationEventMulticaster() {
 		ConfigurableListableBeanFactory beanFactory = getBeanFactory();
+		// ddj_209 如果用户没有自定义广播器，那么久默认使用 ApplicationEventMulticaster
 		if (beanFactory.containsLocalBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME)) {
 			this.applicationEventMulticaster =
 					beanFactory.getBean(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, ApplicationEventMulticaster.class);
@@ -777,6 +799,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 			}
 		}
 		else {
+			// ddj_210 如果用户自定义了事件广播器，那么就用自定义的, 广播器，一定是用于存放监听器并在合适时候调用监听器，我们点到这类里面看看 SimpleApplicationEventMulticaster
 			this.applicationEventMulticaster = new SimpleApplicationEventMulticaster(beanFactory);
 			beanFactory.registerSingleton(APPLICATION_EVENT_MULTICASTER_BEAN_NAME, this.applicationEventMulticaster);
 			if (logger.isDebugEnabled()) {
@@ -831,12 +854,14 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 */
 	protected void registerListeners() {
 		// Register statically specified listeners first.
+		// ddj_213 硬编码方式注册的监听器
 		for (ApplicationListener<?> listener : getApplicationListeners()) {
 			getApplicationEventMulticaster().addApplicationListener(listener);
 		}
 
 		// Do not initialize FactoryBeans here: We need to leave all regular beans
 		// uninitialized to let post-processors apply to them!
+		// ddj_214 配置文件注册监听器处理
 		String[] listenerBeanNames = getBeanNamesForType(ApplicationListener.class, true, false);
 		for (String listenerBeanName : listenerBeanNames) {
 			getApplicationEventMulticaster().addApplicationListenerBean(listenerBeanName);
@@ -857,6 +882,7 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 	 * initializing all remaining singleton beans.
 	 */
 	protected void finishBeanFactoryInitialization(ConfigurableListableBeanFactory beanFactory) {
+		// ddj_216 ConversionService 这个服务有啥用呢？和上面说道的 Date 类型转换成 String 的效果其实一样的，另一种方式而已
 		// Initialize conversion service for this context.
 		if (beanFactory.containsBean(CONVERSION_SERVICE_BEAN_NAME) &&
 				beanFactory.isTypeMatch(CONVERSION_SERVICE_BEAN_NAME, ConversionService.class)) {
@@ -881,9 +907,11 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		beanFactory.setTempClassLoader(null);
 
 		// Allow for caching all bean definition metadata, not expecting further changes.
+		// ddj_217 冻结所有 bean 的定义，说明注册的bean 定义从此之后，将不在被修改或有进一步处理了
 		beanFactory.freezeConfiguration();
 
 		// Instantiate all remaining (non-lazy-init) singletons.
+		// ddj_218 实例化所有剩余的（非惰性初始化）单例。 直接翻译的上面的内容
 		beanFactory.preInstantiateSingletons();
 	}
 
@@ -897,12 +925,15 @@ public abstract class AbstractApplicationContext extends DefaultResourceLoader
 		clearResourceCaches();
 
 		// Initialize lifecycle processor for this context.
+		// ddj_220 当 ApplicationContext 启动或停止时，它会通过 LifecycleProcessor 来与所有声明的bean 的周期做状态更新
 		initLifecycleProcessor();
 
 		// Propagate refresh to lifecycle processor first.
+		// ddj_221 启动所有实现了 Lifecycle 接口的bean
 		getLifecycleProcessor().onRefresh();
 
 		// Publish the final event.
+		// ddj_222 当完成 ApplicationContext 初始化的时候，通过 Spring 的事件发布机制发出一个事件，以保证对应监听器可以做进一步逻辑处理
 		publishEvent(new ContextRefreshedEvent(this));
 
 		// Participate in LiveBeansView MBean, if active.

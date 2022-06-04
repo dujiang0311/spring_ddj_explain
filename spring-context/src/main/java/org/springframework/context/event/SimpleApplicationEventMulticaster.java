@@ -133,6 +133,7 @@ public class SimpleApplicationEventMulticaster extends AbstractApplicationEventM
 		for (final ApplicationListener<?> listener : getApplicationListeners(event, type)) {
 			Executor executor = getTaskExecutor();
 			if (executor != null) {
+				// ddj_211 这连绵应该是遍历所有的监听器，，并使用下面这个方法进行监听器的处理，点进去的底层是有个 onApplicationEvent  方法的。对于监听器来讲，所有事件都是可以获取的，但是否处理，则有事件监听器来决定
 				executor.execute(() -> invokeListener(listener, event));
 			}
 			else {

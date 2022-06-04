@@ -93,6 +93,7 @@ class ApplicationContextAwareProcessor implements BeanPostProcessor {
 			}, acc);
 		}
 		else {
+			// ddj_196 点进去看下这个方法，我们就能想到，实现这些 Aware 接口的bean ，在被初始化之后，可以取得一些对应的资源
 			invokeAwareInterfaces(bean);
 		}
 
